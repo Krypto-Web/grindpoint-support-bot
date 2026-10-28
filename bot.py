@@ -1,7 +1,14 @@
 import os
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    filters,
+    ContextTypes,
+)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
@@ -9,7 +16,10 @@ ADMIN_ID = int(os.getenv("ADMIN_ID"))
 GROUP_LINK = "https://t.me/+NJLTREq5F6E4NWE0"
 REGISTER_LINK = "https://grindpoint.com.ng/register"
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
 WELCOME_TEXT = """Hello 👋
@@ -41,35 +51,60 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == "need_help":
         await query.message.reply_text(
-            "Okay, I’ve received your request ✅\n\nA human support agent will get back to you shortly.\nPlease describe your problem."
+            "Okay, I’ve received your request ✅\n\n"
+            "A human support agent will get back to you shortly.\n"
+            "Please describe your problem."
         )
 
         user = query.from_user
         username = f"@{user.username}" if user.username else "No username"
-        text = f"🆘 *New Support Request*\n\nFrom: {user.full_name}\nUsername: {username}\nUser ID: `{user.id}`\n\nThey clicked *I Need Help*"
-        await context.bot.send_message(chat_id=ADMIN_ID, text=text, parse_mode="Markdown")
+        text = (
+            f"🆘 *New Support Request*\n\n"
+            f"From: {user.full_name}\n"
+            f"Username: {username}\n"
+            f"User ID: `{user.id}`\n\n"
+            f"They clicked *I Need Help*"
+        )
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=text,
+            parse_mode="Markdown"
+        )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    text = update.message.text.strip().lower()
+    message_text = update.message.text.strip().lower()
 
-    if text in ["hi", "hello", "hey", "good morning", "good evening", "start", "help"]:
+    if message_text in ["hi", "hello", "hey", "good morning", "good evening", "start", "help"]:
         await start(update, context)
         return
 
     await update.message.reply_text(
-        "Thank you for your message.\n\nA human support agent will get back to you shortly. Please wait."
+        "Thank you for your message.\n\n"
+        "A human support agent will get back to you shortly. Please wait."
     )
 
     username = f"@{user.username}" if user.username else "No username"
-    msg = f"💬 *New Message*\n\nFrom: {user.full_name}\nUsername: {username}\nUser ID: `{user.id}`\n\nMessage:\n{update.message.text}"
-    await context.bot.send_message(chat_id=ADMIN_ID, text=msg, parse_mode="Markdown")
+    text = (
+        f"💬 *New Message from User*\n\n"
+        f"From: {user.full_name}\n"
+        f"Username: {username}\n"
+        f"User ID: `{user.id}`\n\n"
+        f"Message:\n{update.message.text}"
+    )
+    await context.bot.send_message(
+        chat_id=ADMIN_ID,
+        text=text,
+        parse_mode="Markdown"
+    )
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & \~filters.COMMAND, handle_message))
+
     print("🤖 Grindpoint Bot is running...")
     app.run_polling(drop_pending_updates=True)
 
