@@ -2,8 +2,13 @@ import os
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    Application, CommandHandler, MessageHandler, CallbackQueryHandler,
-    ConversationHandler, filters, ContextTypes,
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    ConversationHandler,
+    filters,
+    ContextTypes,
 )
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -15,13 +20,19 @@ LOGIN_LINK = "https://grindpoint.com.ng/login"
 PTC_LINK = "https://grindpoint.com.ng/ptc"
 DASHBOARD_LINK = "https://grindpoint.com.ng/dashboard"
 
-# Conversation states for withdrawal
 EMAIL, W_DATE, W_AMOUNT, W_BALANCE, W_EXTRA = range(5)
 
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
-# ====================== KEYBOARDS ======================
+WELCOME_TEXT = """Hello 👋
+
+Welcome to *Grindpoint Support*!
+
+I’m your official assistant. How can I help you today?"""
 
 def main_menu_keyboard():
     keyboard = [
@@ -52,18 +63,12 @@ def back_keyboard():
     ]
     return InlineKeyboardMarkup(keyboard)
 
-# ====================== MESSAGES ======================
-
-WELCOME_TEXT = """Hello 👋
-
-Welcome to *Grindpoint Support*!
-
-I’m your official assistant. How can I help you today?"""
-
-# ====================== HANDLERS ======================
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(WELCOME_TEXT, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+    await update.message.reply_text(
+        WELCOME_TEXT,
+        reply_markup=main_menu_keyboard(),
+        parse_mode="Markdown"
+    )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -71,10 +76,17 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
 
     if data == "main_menu":
-        await query.edit_message_text(WELCOME_TEXT, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+        await query.edit_message_text(
+            WELCOME_TEXT,
+            reply_markup=main_menu_keyboard(),
+            parse_mode="Markdown"
+        )
 
     elif data == "help_menu":
-        await query.edit_message_text("Please choose what you need help with:", reply_markup=help_menu_keyboard())
+        await query.edit_message_text(
+            "Please choose what you need help with:",
+            reply_markup=help_menu_keyboard()
+        )
 
     elif data == "help_tasks":
         text = """📋 *How to Complete Tasks Correctly*
@@ -122,8 +134,7 @@ Always complete tasks honestly so your account stays safe and you can keep earni
 *Account Restricted or Banned?*
 If your account was restricted due to foul play (bots, multi-accounting, etc.), it may not be recoverable.
 
-If you still need help, choose “Talk to Human”.
-"""
+If you still need help, choose “Talk to Human”."""
         await query.edit_message_text(text, reply_markup=back_keyboard(), parse_mode="Markdown")
 
     elif data == "help_referral":
@@ -147,8 +158,7 @@ You earn money when people join using your link and complete their first task.
 • Wait a few hours after they finish the task
 • If it still doesn’t appear, contact support with their email
 
-Go to your Dashboard → Referral section to get your link.
-"""
+Go to your Dashboard → Referral section to get your link."""
         await query.edit_message_text(text, reply_markup=back_keyboard(), parse_mode="Markdown")
 
     elif data == "help_withdrawal":
@@ -162,10 +172,9 @@ Go to your Dashboard → Referral section to get your link.
 
     elif data == "help_human":
         await query.edit_message_text(
-            "Okay. Please type your problem clearly.\n\nA human support agent will reply as soon as possible."
+            "Okay. Please type your problem clearly.\n\n"
+            "A human support agent will reply as soon as possible."
         )
-
-# ========== WITHDRAWAL CONVERSATION ==========
 
 async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["email"] = update.message.text.strip()
@@ -261,14 +270,16 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
+    text_filter = filters.TEXT & ~filters.COMMAND
+
     withdrawal_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(button_handler, pattern="^help_withdrawal$")],
         states={
-            EMAIL: [MessageHandler(filters.TEXT & \~filters.COMMAND, get_email)],
-            W_DATE: [MessageHandler(filters.TEXT & \~filters.COMMAND, get_date)],
-            W_AMOUNT: [MessageHandler(filters.TEXT & \~filters.COMMAND, get_amount)],
-            W_BALANCE: [MessageHandler(filters.TEXT & \~filters.COMMAND, get_balance)],
-            W_EXTRA: [MessageHandler(filters.TEXT & \~filters.COMMAND, get_extra)],
+            EMAIL: [MessageHandler(text_filter, get_email)],
+            W_DATE: [MessageHandler(text_filter, get_date)],
+            W_AMOUNT: [MessageHandler(text_filter, get_amount)],
+            W_BALANCE: [MessageHandler(text_filter, get_balance)],
+            W_EXTRA: [MessageHandler(text_filter, get_extra)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
@@ -276,7 +287,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(withdrawal_conv)
     app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.TEXT & \~filters.COMMAND, handle_message))
+    app.add_handler(MessageHandler(text_filter, handle_message))
 
     print("🤖 Grindpoint Smart Support Bot is running...")
     app.run_polling(drop_pending_updates=True)
