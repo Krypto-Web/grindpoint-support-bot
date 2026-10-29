@@ -2,13 +2,8 @@ import os
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    Application,
-    CommandHandler,
-    MessageHandler,
-    CallbackQueryHandler,
-    ConversationHandler,
-    filters,
-    ContextTypes,
+    Application, CommandHandler, MessageHandler, CallbackQueryHandler,
+    ConversationHandler, filters, ContextTypes,
 )
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -16,29 +11,25 @@ ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 GROUP_LINK = "https://t.me/+NJLTREq5F6E4NWE0"
 REGISTER_LINK = "https://grindpoint.com.ng/register"
+LOGIN_LINK = "https://grindpoint.com.ng/login"
+PTC_LINK = "https://grindpoint.com.ng/ptc"
+DASHBOARD_LINK = "https://grindpoint.com.ng/dashboard"
 
-WITHDRAWAL_DATE, WITHDRAWAL_AMOUNT, WITHDRAWAL_EXTRA = range(3)
+# Conversation states for withdrawal
+EMAIL, W_DATE, W_AMOUNT, W_BALANCE, W_EXTRA = range(5)
 
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
-)
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-WELCOME_TEXT = """Hello 👋
-
-Welcome to *Grindpoint Support*!
-
-I’m here to help you quickly.
-
-What would you like to do?"""
-
-HELP_MENU_TEXT = "Please choose what you need help with:"
+# ====================== KEYBOARDS ======================
 
 def main_menu_keyboard():
     keyboard = [
         [InlineKeyboardButton("📢 Join Telegram Group", url=GROUP_LINK)],
         [InlineKeyboardButton("📝 Create Free Account", url=REGISTER_LINK)],
+        [InlineKeyboardButton("🔐 Login to Account", url=LOGIN_LINK)],
+        [InlineKeyboardButton("⚡ Start Earning (PTC)", url=PTC_LINK)],
+        [InlineKeyboardButton("🏠 Go to Dashboard", url=DASHBOARD_LINK)],
         [InlineKeyboardButton("🆘 I Need Help", callback_data="help_menu")],
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -54,19 +45,25 @@ def help_menu_keyboard():
     ]
     return InlineKeyboardMarkup(keyboard)
 
-def back_to_help_keyboard():
+def back_keyboard():
     keyboard = [
         [InlineKeyboardButton("🔙 Back to Help Menu", callback_data="help_menu")],
         [InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")],
     ]
     return InlineKeyboardMarkup(keyboard)
 
+# ====================== MESSAGES ======================
+
+WELCOME_TEXT = """Hello 👋
+
+Welcome to *Grindpoint Support*!
+
+I’m your official assistant. How can I help you today?"""
+
+# ====================== HANDLERS ======================
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        WELCOME_TEXT,
-        reply_markup=main_menu_keyboard(),
-        parse_mode="Markdown"
-    )
+    await update.message.reply_text(WELCOME_TEXT, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -74,133 +71,161 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
 
     if data == "main_menu":
-        await query.edit_message_text(
-            WELCOME_TEXT,
-            reply_markup=main_menu_keyboard(),
-            parse_mode="Markdown"
-        )
+        await query.edit_message_text(WELCOME_TEXT, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
 
     elif data == "help_menu":
-        await query.edit_message_text(
-            HELP_MENU_TEXT,
-            reply_markup=help_menu_keyboard()
-        )
+        await query.edit_message_text("Please choose what you need help with:", reply_markup=help_menu_keyboard())
 
     elif data == "help_tasks":
         text = """📋 *How to Complete Tasks Correctly*
 
-Here’s the proper way to earn without problems:
+Follow these steps carefully to avoid problems:
 
-1. Go to the *Tasks* or *View Ads (PTC)* page
-2. Click on a task
-3. Follow the instructions carefully
-4. For PTC/Ads:
-   - You must stay on the advertiser website for the full time
-   - Do not switch tabs early or leave it idle
-   - Do not use bots or scripts
-5. After completing, claim your reward
+*For PTC / View Ads:*
+1. Click “View Ad”
+2. Read the warning carefully
+3. Stay on the advertiser’s website for the full time shown
+4. Do not switch tabs, minimise, or leave the page idle
+5. After the time is complete, come back and click Claim
 
-⚠️ Important:
-Using bots, auto-clickers, or staying idle can cancel your reward and may lead to account restriction.
+*Important Rules:*
+• Using bots, scripts, or auto-clickers is strictly forbidden
+• Staying idle or leaving early will cancel your reward
+• Repeated abuse can lead to permanent ban and loss of balance
 
-Need more help? Go back to the menu."""
-        await query.edit_message_text(text, reply_markup=back_to_help_keyboard(), parse_mode="Markdown")
+*Other Tasks (Surveys, Social, App installs):*
+- Follow the exact instructions on each task
+- Submit correct proof when required
+- Do not use fake accounts or VPNs
+
+Always complete tasks honestly so your account stays safe and you can keep earning."""
+        await query.edit_message_text(text, reply_markup=back_keyboard(), parse_mode="Markdown")
 
     elif data == "help_account":
         text = """👤 *Account & Login Issues*
 
-Common solutions:
+*Can’t log in?*
+• Make sure you are using the correct email and password
+• Try the “Forgot Password” option
+• Clear your browser cache or try another browser / phone
+• Make sure you have verified your email
 
-• *Can’t login?*
-  - Make sure you’re using the correct email
-  - Try resetting your password
-  - Clear browser cache or try another browser
+*Didn’t receive verification email?*
+• Check your Spam / Junk / Promotions folder
+• Wait 5–10 minutes
+• Try requesting the verification link again
 
-• *Didn’t receive verification email?*
-  - Check your spam/junk folder
-  - Wait a few minutes and try again
+*Name & Bank Details:*
+• Your full name cannot be changed after registration (it must match your bank account)
+• To update bank/wallet details, contact support with your registered email
 
-• *Want to change your name or bank details?*
-  - Name cannot be changed after registration (must match your bank account)
-  - For bank details, contact support with your registered email
+*Account Restricted or Banned?*
+If your account was restricted due to foul play (bots, multi-accounting, etc.), it may not be recoverable.
 
-If your issue is still not solved, choose “Talk to Human”."""
-        await query.edit_message_text(text, reply_markup=back_to_help_keyboard(), parse_mode="Markdown")
+If you still need help, choose “Talk to Human”.
+"""
+        await query.edit_message_text(text, reply_markup=back_keyboard(), parse_mode="Markdown")
 
     elif data == "help_referral":
-        text = """👥 *Referral Questions*
+        text = """👥 *Referral Program*
 
-• You earn a bonus when someone registers with your link and completes their first task.
-• Referral bonus depends on your tier:
-  - Starter: ₦200
-  - Hustler (10+ referrals): ₦300
-  - Champion (50+ referrals): ₦500
+You earn money when people join using your link and complete their first task.
 
-• You can find your referral link on the Referral page after login.
+*Referral Bonus Tiers:*
+• Starter (0–9 referrals) → ₦200 per referral
+• Hustler (10–49 referrals) → ₦300 per referral
+• Champion (50+ referrals) → ₦500 per referral
 
-• Referral bonus is usually credited automatically after the person completes their first valid task.
+*How it works:*
+1. Copy your referral link from the Referral page
+2. Share it with friends
+3. When they register and complete their first valid task, you receive your bonus
 
-If your referral bonus has not entered after a long time, choose “Talk to Human” and give us the person’s email or username."""
-        await query.edit_message_text(text, reply_markup=back_to_help_keyboard(), parse_mode="Markdown")
+*Bonus not showing?*
+• Make sure the person used your exact link
+• They must complete at least one valid task
+• Wait a few hours after they finish the task
+• If it still doesn’t appear, contact support with their email
+
+Go to your Dashboard → Referral section to get your link.
+"""
+        await query.edit_message_text(text, reply_markup=back_keyboard(), parse_mode="Markdown")
 
     elif data == "help_withdrawal":
         await query.edit_message_text(
             "💸 *Withdrawal Support*\n\n"
-            "I need a few details so we can help you faster.\n\n"
-            "First question:\n"
-            "*When did you place the withdrawal?*\n"
-            "(Example: Yesterday, 2 days ago, 28th October, etc.)",
+            "To help you faster, I need some details.\n\n"
+            "Please type your *registered email address* on Grindpoint:",
             parse_mode="Markdown"
         )
-        return WITHDRAWAL_DATE
+        return EMAIL
 
     elif data == "help_human":
         await query.edit_message_text(
-            "Okay. Please type your problem clearly.\n\n"
-            "A human support agent will reply to you as soon as possible."
+            "Okay. Please type your problem clearly.\n\nA human support agent will reply as soon as possible."
         )
 
-async def withdrawal_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["withdrawal_date"] = update.message.text
+# ========== WITHDRAWAL CONVERSATION ==========
+
+async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["email"] = update.message.text.strip()
     await update.message.reply_text(
         "Got it.\n\n"
-        "Second question:\n"
-        "*How much did you try to withdraw?*\n"
-        "(Example: 1500, 3000, 5000)"
+        "When did you place the withdrawal?\n"
+        "(Example: Yesterday, 2 days ago, 28th October)"
     )
-    return WITHDRAWAL_AMOUNT
+    return W_DATE
 
-async def withdrawal_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["withdrawal_amount"] = update.message.text
+async def get_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["date"] = update.message.text.strip()
     await update.message.reply_text(
-        "Thank you.\n\n"
-        "Last question (optional):\n"
-        "Any extra information? (Transaction ID, error message, or just type 'None')"
+        "How much did you try to withdraw?\n"
+        "(Example: 2000, 5000, 10000)"
     )
-    return WITHDRAWAL_EXTRA
+    return W_AMOUNT
 
-async def withdrawal_extra(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    extra = update.message.text
+async def get_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["amount"] = update.message.text.strip()
+    await update.message.reply_text(
+        "What is your *current balance* on Grindpoint right now?"
+    )
+    return W_BALANCE
+
+async def get_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["balance"] = update.message.text.strip()
+    await update.message.reply_text(
+        "Any extra information?\n"
+        "(Transaction reference, error message, or just type None)"
+    )
+    return W_EXTRA
+
+async def get_extra(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    extra = update.message.text.strip()
     user = update.effective_user
 
-    date = context.user_data.get("withdrawal_date", "Not provided")
-    amount = context.user_data.get("withdrawal_amount", "Not provided")
+    email = context.user_data.get("email", "Not provided")
+    date = context.user_data.get("date", "Not provided")
+    amount = context.user_data.get("amount", "Not provided")
+    balance = context.user_data.get("balance", "Not provided")
 
     username = f"@{user.username}" if user.username else "No username"
+
     text = (
-        f"💸 *Withdrawal Support Request*\n\n"
+        f"💸 *New Withdrawal Support Request*\n\n"
         f"From: {user.full_name}\n"
         f"Username: {username}\n"
-        f"User ID: `{user.id}`\n\n"
-        f"• Date of withdrawal: {date}\n"
+        f"Telegram ID: `{user.id}`\n\n"
+        f"• Email: `{email}`\n"
+        f"• Date of Withdrawal: {date}\n"
         f"• Amount: {amount}\n"
-        f"• Extra info: {extra}"
+        f"• Current Balance: {balance}\n"
+        f"• Extra Info: {extra}"
     )
+
     await context.bot.send_message(chat_id=ADMIN_ID, text=text, parse_mode="Markdown")
 
     await update.message.reply_text(
-        "✅ Thank you for the information.\n\n"
-        "Your withdrawal issue has been sent to our support team.\n"
+        "✅ Thank you. Your withdrawal details have been sent to the support team.\n\n"
         "We will check and get back to you shortly.",
         reply_markup=main_menu_keyboard()
     )
@@ -208,26 +233,23 @@ async def withdrawal_extra(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    message_text = update.message.text.strip().lower()
-
-    if message_text in ["hi", "hello", "hey", "good morning", "good evening", "start", "help", "menu"]:
+    text = update.message.text.strip().lower()
+    if text in ["hi", "hello", "hey", "good morning", "good evening", "start", "help", "menu"]:
         await start(update, context)
         return
 
+    user = update.effective_user
     username = f"@{user.username}" if user.username else "No username"
-    text = (
-        f"💬 *New Message from User*\n\n"
+    msg = (
+        f"💬 *New Message*\n\n"
         f"From: {user.full_name}\n"
         f"Username: {username}\n"
-        f"User ID: `{user.id}`\n\n"
+        f"ID: `{user.id}`\n\n"
         f"Message:\n{update.message.text}"
     )
-    await context.bot.send_message(chat_id=ADMIN_ID, text=text, parse_mode="Markdown")
-
+    await context.bot.send_message(chat_id=ADMIN_ID, text=msg, parse_mode="Markdown")
     await update.message.reply_text(
-        "Thank you for your message.\n\n"
-        "A human support agent will get back to you shortly.",
+        "Thank you for your message. A human agent will reply shortly.",
         reply_markup=main_menu_keyboard()
     )
 
@@ -242,9 +264,11 @@ def main():
     withdrawal_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(button_handler, pattern="^help_withdrawal$")],
         states={
-            WITHDRAWAL_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, withdrawal_date)],
-            WITHDRAWAL_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, withdrawal_amount)],
-            WITHDRAWAL_EXTRA: [MessageHandler(filters.TEXT & ~filters.COMMAND, withdrawal_extra)],
+            EMAIL: [MessageHandler(filters.TEXT & \~filters.COMMAND, get_email)],
+            W_DATE: [MessageHandler(filters.TEXT & \~filters.COMMAND, get_date)],
+            W_AMOUNT: [MessageHandler(filters.TEXT & \~filters.COMMAND, get_amount)],
+            W_BALANCE: [MessageHandler(filters.TEXT & \~filters.COMMAND, get_balance)],
+            W_EXTRA: [MessageHandler(filters.TEXT & \~filters.COMMAND, get_extra)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
@@ -252,7 +276,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(withdrawal_conv)
     app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(MessageHandler(filters.TEXT & \~filters.COMMAND, handle_message))
 
     print("🤖 Grindpoint Smart Support Bot is running...")
     app.run_polling(drop_pending_updates=True)
