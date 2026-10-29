@@ -1,6 +1,6 @@
 import os
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -11,15 +11,12 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# ================== CONFIG ==================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 GROUP_LINK = "https://t.me/+NJLTREq5F6E4NWE0"
 REGISTER_LINK = "https://grindpoint.com.ng/register"
-# ============================================
 
-# Conversation states for withdrawal
 WITHDRAWAL_DATE, WITHDRAWAL_AMOUNT, WITHDRAWAL_EXTRA = range(3)
 
 logging.basicConfig(
@@ -27,8 +24,6 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
-# ========== MESSAGES ==========
 
 WELCOME_TEXT = """Hello 👋
 
@@ -38,9 +33,7 @@ I’m here to help you quickly.
 
 What would you like to do?"""
 
-HELP_MENU_TEXT = """Please choose what you need help with:"""
-
-# ========== KEYBOARDS ==========
+HELP_MENU_TEXT = "Please choose what you need help with:"
 
 def main_menu_keyboard():
     keyboard = [
@@ -67,8 +60,6 @@ def back_to_help_keyboard():
         [InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")],
     ]
     return InlineKeyboardMarkup(keyboard)
-
-# ========== HANDLERS ==========
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -153,7 +144,6 @@ If your referral bonus has not entered after a long time, choose “Talk to Huma
         await query.edit_message_text(text, reply_markup=back_to_help_keyboard(), parse_mode="Markdown")
 
     elif data == "help_withdrawal":
-        # Start withdrawal conversation
         await query.edit_message_text(
             "💸 *Withdrawal Support*\n\n"
             "I need a few details so we can help you faster.\n\n"
@@ -169,11 +159,9 @@ If your referral bonus has not entered after a long time, choose “Talk to Huma
             "Okay. Please type your problem clearly.\n\n"
             "A human support agent will reply to you as soon as possible."
         )
-        # We will handle the next message as human request
 
 async def withdrawal_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["withdrawal_date"] = update.message.text
-
     await update.message.reply_text(
         "Got it.\n\n"
         "Second question:\n"
@@ -184,7 +172,6 @@ async def withdrawal_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def withdrawal_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["withdrawal_amount"] = update.message.text
-
     await update.message.reply_text(
         "Thank you.\n\n"
         "Last question (optional):\n"
@@ -199,7 +186,6 @@ async def withdrawal_extra(update: Update, context: ContextTypes.DEFAULT_TYPE):
     date = context.user_data.get("withdrawal_date", "Not provided")
     amount = context.user_data.get("withdrawal_amount", "Not provided")
 
-    # Notify Admin
     username = f"@{user.username}" if user.username else "No username"
     text = (
         f"💸 *Withdrawal Support Request*\n\n"
@@ -218,7 +204,6 @@ async def withdrawal_extra(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "We will check and get back to you shortly.",
         reply_markup=main_menu_keyboard()
     )
-
     context.user_data.clear()
     return ConversationHandler.END
 
@@ -226,12 +211,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     message_text = update.message.text.strip().lower()
 
-    # Common greetings
     if message_text in ["hi", "hello", "hey", "good morning", "good evening", "start", "help", "menu"]:
         await start(update, context)
         return
 
-    # If user is just typing randomly, treat as human request
     username = f"@{user.username}" if user.username else "No username"
     text = (
         f"💬 *New Message from User*\n\n"
@@ -256,13 +239,12 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # Withdrawal conversation
     withdrawal_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(button_handler, pattern="^help_withdrawal$")],
         states={
-            WITHDRAWAL_DATE: [MessageHandler(filters.TEXT & \~filters.COMMAND, withdrawal_date)],
-            WITHDRAWAL_AMOUNT: [MessageHandler(filters.TEXT & \~filters.COMMAND, withdrawal_amount)],
-            WITHDRAWAL_EXTRA: [MessageHandler(filters.TEXT & \~filters.COMMAND, withdrawal_extra)],
+            WITHDRAWAL_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, withdrawal_date)],
+            WITHDRAWAL_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, withdrawal_amount)],
+            WITHDRAWAL_EXTRA: [MessageHandler(filters.TEXT & ~filters.COMMAND, withdrawal_extra)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
@@ -270,7 +252,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(withdrawal_conv)
     app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.TEXT & \~filters.COMMAND, handle_message))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("🤖 Grindpoint Smart Support Bot is running...")
     app.run_polling(drop_pending_updates=True)
